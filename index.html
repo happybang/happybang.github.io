@@ -230,7 +230,7 @@
               
                 
                 <a class="post-title-link" href="/2016/04/17/通过requireTemplate提高模板引擎的性能/" itemprop="url">
-                  通过requireTemplate提高模板引擎的性能
+                  Unbenannt
                 </a>
               
             
@@ -273,7 +273,29 @@
       
         
           
-            
+            <h1 id="通过requireTemplate提高模板引擎的性能"><a href="#通过requireTemplate提高模板引擎的性能" class="headerlink" title="通过requireTemplate提高模板引擎的性能"></a>通过requireTemplate提高模板引擎的性能</h1><p>#关于模板引擎：<br>1.模板引擎的优点：编写代码直观，代码方便管理,数据和展示逻辑解耦等。<br>2.模板引擎的缺点：性能上多了一次解析过程，对性能控不能忍受。</p>
+<p>#解决思路：  </p>
+<blockquote>
+<p>通过构建来解决该问题： 将第一次模板引擎解析放在构建的时候来做。  </p>
+<p>##拿ejs模板引擎举例：</p>
+<p>###下面列举其在运行时执行步骤：<br>1.首先我们写了一个模板内容如下：  </p>
+<p>&lt;% if (names.length) { %&gt;</p>
+<p><ul><br>&lt;% names.forEach(function(name){ %&gt;</ul></p>
+<p>&lt;li foo=’&lt;%= name + “‘“ %&gt;’&gt;&lt;%= name %&gt;<br>&lt;% }) %&gt;<br><br>&lt;% } %&gt;</p>
+</blockquote>
+<p>2.我们的代码如下：  </p>
+<p>var users = [];<br>users.push({ name: ‘Tobi’, age: 2, species: ‘ferret’ })<br>users.push({ name: ‘Loki’, age: 2, species: ‘ferret’ })<br>users.push({ name: ‘Jane’, age: 6, species: ‘ferret’ })<br>var ret = ejs.render(str, {//此str为上一步的模板字符串<br>users: users<br>});<br>console.log(ret);<br>3.最后console输入的结果为:      </p>
+<p><code>&lt;ul&gt;</code> <li foo="Tobi">Tobi</li><br><code>&lt;li foo=&#39;Loki&#39;&gt;Loki&lt;/li&gt;</code> <li foo="Jane">Jane</li><br>`</p>
+<p>###那么ejs为我们做了什么事情呢？<br>ejs通过解析上面的模板生成如下的代码：<br>（伪代码）  </p>
+<p>var _content  = [];<br>var __append =function(a){<br>_content .push(a);<br>}<br>with（data){<br>_append(“ul”)<br>names.forEach(function(name){<br>_append(“<li foo=""+name+"">“+name+”</li>“)<br>}<br>}<br>return _content.join(‘’);</p>
+<p>并将users数据带入上面代码的context中执行得到最终结果。。  </p>
+<p>3、ok知道了ejs在runtime如何工作，设想一个场景如下，针对上述例子进行改进：<br>首先模板书写方式不变。<br>直接修改第二部分的脚本：  </p>
+<p>var users = [];<br>users.push({ name: ‘Tobi’, age: 2, species: ‘ferret’ })<br>users.push({ name: ‘Loki’, age: 2, species: ‘ferret’ })<br>users.push({ name: ‘Jane’, age: 6, species: ‘ferret’ })<br>var ejsrun=@requireTemplate(str);//此处的str仍然是模板字符串或者路径<br>var ret = ejsrun({<br>users:users<br>})<br>console.log(ret);</p>
+<p>然后执行构建工具，<br>之后deploy的代码如下：</p>
+<p>var users = [];<br>users.push({ name: ‘Tobi’, age: 2, species: ‘ferret’ })<br>users.push({ name: ‘Loki’, age: 2, species: ‘ferret’ })<br>users.push({ name: ‘Jane’, age: 6, species: ‘ferret’ })<br>var ejsrun=function(data){<br>var _content  = [];<br>var __append =function(a){<br>_content .push(a);<br>}<br>with（data){<br>_append(“ul”)<br>names.forEach(function(name){<br>_append(“<li foo=""+name+"">“+name+”</li>“)<br>}<br>}<br>return _content.join(‘’);</p>
+<p>};<br>var ret = ejsrun({<br>users:users<br>})<br>console.log(ret);<br>以上抛砖引玉拿ejs模板举例。</p>
+<p>requireTemplate的使用方法参考：<a href="https://github.com/happybang/ezbuild.git" target="_blank" rel="external">https://github.com/happybang/ezbuild.git</a><br>使用方法：npm install -g ezbuild<br>执行命令：ezbuild templatejs src  desc</p>
+
           
         
       
